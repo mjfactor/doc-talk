@@ -1,102 +1,123 @@
-import Image from "next/image";
+"use client";
+
+import { useState, ChangeEvent } from "react";
+// import Image from "next/image"; // No longer used directly, but kept for potential future use
+import { UploadCloud, MessageCircle } from "lucide-react";
+import { Button } from "@/components/ui/button"; // Import Shadcn Button
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files[0]) {
+      const file = event.target.files[0];
+      if (file.type === "application/pdf") {
+        setSelectedFile(file);
+        setFileName(file.name);
+      } else {
+        setSelectedFile(null);
+        setFileName(null);
+        // Consider using a Shadcn Toast component here for better UX
+        alert("Please upload a PDF file.");
+      }
+    }
+  };
+
+  const handleTalkClick = () => {
+    if (selectedFile) {
+      // Placeholder for talk functionality
+      // Consider using a Shadcn Toast component here
+      alert(`Starting chat with ${selectedFile.name}`);
+    }
+  };
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4 font-sans">
+      <header className="mb-12 text-center">
+        <h1 className="text-5xl font-bold mb-3">DocTalk</h1>
+        <p className="text-xl text-muted-foreground">
+          Upload your PDF and start a conversation.
+        </p>
+      </header>
+
+      <main className="w-full max-w-2xl bg-card text-card-foreground shadow-2xl rounded-xl p-8">
+        <div className="flex flex-col items-center gap-8">
+          <label
+            htmlFor="pdf-upload"
+            className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-primary transition-colors duration-300 bg-card hover:bg-accent"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+            <div className="flex flex-col items-center justify-center pt-5 pb-6">
+              <UploadCloud className="w-12 h-12 mb-4 text-primary" />
+              <p className="mb-2 text-lg text-card-foreground">
+                <span className="font-semibold">Click to upload</span> or drag and
+                drop
+              </p>
+              <p className="text-sm text-muted-foreground">PDF only</p>
+              {fileName && (
+                <p className="mt-4 text-md text-primary">{fileName}</p>
+              )}
+            </div>
+            <input
+              id="pdf-upload"
+              type="file"
+              className="hidden"
+              accept="application/pdf"
+              onChange={handleFileChange}
             />
-            Deploy now
-          </a>
+          </label>
+
+          {selectedFile && (
+            <Button
+              onClick={handleTalkClick}
+              disabled={!selectedFile}
+              size="lg" // Using Shadcn button size prop
+              className="w-full sm:w-auto" // Keep responsive width
+            >
+              <MessageCircle className="w-5 h-5 mr-2" /> {/* Adjusted icon size and margin */}
+              Talk to PDF
+            </Button>
+          )}
+        </div>
+
+        {/* Placeholder for chat interface - consider Shadcn Card or other layout components */}
+        {/* <div className="mt-12 w-full h-96 bg-muted rounded-lg p-4">
+          <p className="text-muted-foreground text-center">Chat interface will appear here...</p>
+        </div> */}
+      </main>
+
+      <footer className="mt-12 text-center text-muted-foreground text-sm">
+        <p>&copy; {new Date().getFullYear()} DocTalk. All rights reserved.</p>
+        <p className="mt-1">
+          Powered by{" "}
           <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
+            href="https://nextjs.org"
             target="_blank"
             rel="noopener noreferrer"
+            className="hover:text-primary transition-colors"
           >
-            Read our docs
+            Next.js
+          </a>{" "}
+          &{" "}
+          <a
+            href="https://tailwindcss.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-primary transition-colors"
+          >
+            Tailwind CSS
           </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+          {" "}
+          &{" "}
+          <a
+            href="https://ui.shadcn.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-primary transition-colors"
+          >
+            Shadcn/UI
+          </a>
+        </p>
       </footer>
     </div>
   );
