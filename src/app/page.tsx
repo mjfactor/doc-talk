@@ -1,14 +1,16 @@
 "use client";
 
 import { useState, ChangeEvent } from "react";
-// import Image from "next/image"; // No longer used directly, but kept for potential future use
-import { UploadCloud, MessageCircle } from "lucide-react";
+import { UploadCloud, MessageCircle, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button"; // Import Shadcn Button
+import { createAuthClient } from "better-auth/client";
+import { useRouter } from "next/navigation"; // Added useRouter import
 
 export default function Home() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
-
+  const router = useRouter(); // Initialized useRouter
+  const authClient = createAuthClient(); // Initialize auth client
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       const file = event.target.files[0];
@@ -32,13 +34,34 @@ export default function Home() {
     }
   };
 
+  const handleSignOut = async () => {
+    try {
+      await authClient.signOut({
+        fetchOptions: {
+          onSuccess: () => {
+            router.push("/auth"); // Redirect to auth page after sign-out
+          },
+        },
+      });
+    } catch (error) {
+      console.error("Sign-out error:", error);
+      // Handle error appropriately
+    }
+  };
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4 font-sans">
-      <header className="mb-12 text-center">
-        <h1 className="text-5xl font-bold mb-3">DocTalk</h1>
-        <p className="text-xl text-muted-foreground">
-          Upload your PDF and start a conversation.
-        </p>
+      <header className="mb-12 text-center w-full max-w-2xl flex justify-between items-center">
+        <div>
+          <h1 className="text-5xl font-bold mb-3">DocTalk</h1>
+          <p className="text-xl text-muted-foreground">
+            Upload your PDF and start a conversation.
+          </p>
+        </div>
+        <Button variant="outline" size="icon" onClick={handleSignOut} className="ml-4">
+          <LogOut className="h-5 w-5" />
+          <span className="sr-only">Sign out</span>
+        </Button>
       </header>
 
       <main className="w-full max-w-2xl bg-card text-card-foreground shadow-2xl rounded-xl p-8">

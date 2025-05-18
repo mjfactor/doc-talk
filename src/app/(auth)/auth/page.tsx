@@ -8,20 +8,34 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { createAuthClient } from "better-auth/client"; // Added import
+import { useRouter } from "next/navigation"; // Added import
 
 // Placeholder for actual icons - recommend using a library like lucide-react
 const GoogleIcon = () => <span className="mr-2">G</span>;
 const GitHubIcon = () => <span className="mr-2">GH</span>;
+const authClient = createAuthClient(); // Added authClient initialization
 
 export default function SignInPage() {
-  const handleGoogleSignIn = () => {
-    console.log("Attempting Google Sign-In (mock)");
-    // In a real app, you would redirect to your Google OAuth endpoint
+  const router = useRouter(); // Added router initialization
+  const handleGoogleSignIn = async () => { // Changed to async
+    try {
+      await authClient.signIn.social({ provider: "google" });
+      router.push("/"); // Redirect to home page after sign-in
+    } catch (error) {
+      console.error("Google Sign-In Error:", error);
+      // Handle error appropriately in a real app (e.g., show a notification)
+    }
   };
 
-  const handleGitHubSignIn = () => {
-    console.log("Attempting GitHub Sign-In (mock)");
-    // In a real app, you would redirect to your GitHub OAuth endpoint
+  const handleGitHubSignIn = async () => { // Changed to async
+    try {
+      await authClient.signIn.social({ provider: "github" });
+      router.push("/"); // Redirect to home page after sign-in
+    } catch (error) {
+      console.error("GitHub Sign-In Error:", error);
+      // Handle error appropriately in a real app
+    }
   };
 
   return (
