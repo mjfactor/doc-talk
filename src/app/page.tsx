@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, ChangeEvent } from "react";
-import { UploadCloud, MessageCircle, LogOut } from "lucide-react";
+import { UploadCloud, MessageCircle, LogOut, X } from "lucide-react"; // Added X icon
 import { Button } from "@/components/ui/button"; // Import Shadcn Button
 import { createAuthClient } from "better-auth/client";
 import { useRouter } from "next/navigation"; // Added useRouter import
@@ -11,6 +11,7 @@ export default function Home() {
   const [fileName, setFileName] = useState<string | null>(null);
   const router = useRouter(); // Initialized useRouter
   const authClient = createAuthClient(); // Initialize auth client
+
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       const file = event.target.files[0];
@@ -24,6 +25,11 @@ export default function Home() {
         alert("Please upload a PDF file.");
       }
     }
+  };
+
+  const handleRemoveFile = () => {
+    setSelectedFile(null);
+    setFileName(null);
   };
 
   const handleTalkClick = () => {
@@ -50,22 +56,23 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4 font-sans">
-      <header className="mb-12 text-center w-full max-w-2xl flex justify-between items-center">
+    <div className="relative flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4 font-sans">
+      <Button variant="outline" onClick={handleSignOut} className="absolute top-4 right-4 sm:top-6 sm:right-6 z-10">
+        <LogOut className="h-5 w-5 mr-2" />
+        Logout
+      </Button>
+
+      <header className="mb-12 w-full max-w-2xl flex flex-col items-center text-center pt-8 sm:pt-12">
         <div>
           <h1 className="text-5xl font-bold mb-3">DocTalk</h1>
           <p className="text-xl text-muted-foreground">
             Upload your PDF and start a conversation.
           </p>
         </div>
-        <Button variant="outline" size="icon" onClick={handleSignOut} className="ml-4">
-          <LogOut className="h-5 w-5" />
-          <span className="sr-only">Sign out</span>
-        </Button>
       </header>
 
       <main className="w-full max-w-2xl bg-card text-card-foreground shadow-2xl rounded-xl p-8">
-        <div className="flex flex-col items-center gap-8">
+        <div className="flex flex-col items-center gap-6"> {/* Adjusted gap from gap-8 to gap-6 */}
           <label
             htmlFor="pdf-upload"
             className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-primary transition-colors duration-300 bg-card hover:bg-accent"
@@ -78,7 +85,21 @@ export default function Home() {
               </p>
               <p className="text-sm text-muted-foreground">PDF only</p>
               {fileName && (
-                <p className="mt-4 text-md text-primary">{fileName}</p>
+                <div className="mt-4 flex items-center gap-2 bg-accent p-2 rounded-md">
+                  <p className="text-md text-primary">{fileName}</p>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => {
+                      e.preventDefault(); // Prevent label click-through
+                      handleRemoveFile();
+                    }}
+                    className="h-6 w-6" // Smaller remove button
+                  >
+                    <X className="h-4 w-4" />
+                    <span className="sr-only">Remove file</span>
+                  </Button>
+                </div>
               )}
             </div>
             <input
@@ -108,40 +129,6 @@ export default function Home() {
           <p className="text-muted-foreground text-center">Chat interface will appear here...</p>
         </div> */}
       </main>
-
-      <footer className="mt-12 text-center text-muted-foreground text-sm">
-        <p>&copy; {new Date().getFullYear()} DocTalk. All rights reserved.</p>
-        <p className="mt-1">
-          Powered by{" "}
-          <a
-            href="https://nextjs.org"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-primary transition-colors"
-          >
-            Next.js
-          </a>{" "}
-          &{" "}
-          <a
-            href="https://tailwindcss.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-primary transition-colors"
-          >
-            Tailwind CSS
-          </a>
-          {" "}
-          &{" "}
-          <a
-            href="https://ui.shadcn.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-primary transition-colors"
-          >
-            Shadcn/UI
-          </a>
-        </p>
-      </footer>
     </div>
   );
 }

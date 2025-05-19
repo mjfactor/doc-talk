@@ -1,53 +1,38 @@
 'use client';
-
+import { createAuthClient } from "better-auth/client";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { createAuthClient } from "better-auth/client"; // Added import
-import { useRouter } from "next/navigation"; // Added import
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Github, Mail } from "lucide-react"; // Assuming Mail for Google, replace if a better Google icon is available
 
-// Placeholder for actual icons - recommend using a library like lucide-react
-const GoogleIcon = () => <span className="mr-2">G</span>;
-const GitHubIcon = () => <span className="mr-2">GH</span>;
-const authClient = createAuthClient(); // Added authClient initialization
+const authClient = createAuthClient();
 
 export default function SignInPage() {
-  const router = useRouter(); // Added router initialization
-  const handleGoogleSignIn = async () => { // Changed to async
+  const router = useRouter();
+  const handleGoogleSignIn = async () => {
     try {
       await authClient.signIn.social({ provider: "google" });
-      router.push("/"); // Redirect to home page after sign-in
+      router.push("/");
     } catch (error) {
       console.error("Google Sign-In Error:", error);
-      // Handle error appropriately in a real app (e.g., show a notification)
     }
   };
 
-  const handleGitHubSignIn = async () => { // Changed to async
+  const handleGitHubSignIn = async () => {
     try {
       await authClient.signIn.social({ provider: "github" });
-      router.push("/"); // Redirect to home page after sign-in
+      router.push("/");
     } catch (error) {
       console.error("GitHub Sign-In Error:", error);
-      // Handle error appropriately in a real app
     }
   };
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md shadow-xl">
+      <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold tracking-tight">
-            Sign In
-          </CardTitle>
-          <CardDescription className="text-muted-foreground">
-            Choose your preferred provider to continue
-          </CardDescription>
+          <CardTitle className="text-2xl font-bold">Sign In</CardTitle>
+          <CardDescription>Choose your preferred sign-in method</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <Button
@@ -55,7 +40,7 @@ export default function SignInPage() {
             className="w-full"
             onClick={handleGoogleSignIn}
           >
-            <GoogleIcon />
+            <Mail className="mr-2 h-5 w-5" />
             Sign in with Google
           </Button>
           <Button
@@ -63,7 +48,7 @@ export default function SignInPage() {
             className="w-full"
             onClick={handleGitHubSignIn}
           >
-            <GitHubIcon />
+            <Github className="mr-2 h-5 w-5" />
             Sign in with GitHub
           </Button>
         </CardContent>
