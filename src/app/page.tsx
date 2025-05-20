@@ -5,7 +5,6 @@ import { UploadCloud, MessageCircle, LogOut, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createAuthClient } from "better-auth/client";
 import { useRouter } from "next/navigation";
-import supabase from "@/lib/superbase"; // Import the Supabase client from your lib file
 
 export default function Home() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -38,39 +37,12 @@ export default function Home() {
 
       // Get current user session
       const { data: session, error: sessionError } = await authClient.getSession();
-
       if (sessionError) {
         console.error('Error getting session:', sessionError);
         alert('Error getting user session. Please try again.');
         return;
       }
-
-      if (session && session.user) {
-        try {
-          const { data, error } = await supabase
-            .from('talk_sessions')
-            .insert([
-              { user_id: session.user.id, pdf_name: selectedFile.name },
-            ]);
-
-          if (error) {
-            console.error('Error inserting data into Supabase:', error);
-            // Handle error appropriately, e.g., show a toast notification
-            alert('Error saving session data.');
-            return;
-          }
-
-          console.log('Data inserted into Supabase:', data);
-          // Proceed with Vapi AI integration here
-        } catch (error) {
-          console.error('Error interacting with Supabase:', error);
-          alert('An unexpected error occurred while saving session data.');
-        }
-      } else {
-        // Handle case where user is not available or session is null
-        alert('User not authenticated or session not found. Please sign in.');
-        router.push('/auth');
-      }
+      console.log('Auth session object:', session);
     }
   };
 

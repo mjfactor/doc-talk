@@ -1,3 +1,4 @@
+// src/lib/auth.ts
 import { betterAuth } from "better-auth";
 import { Pool } from "pg";
 
@@ -15,4 +16,4 @@ export const auth = betterAuth({
             clientSecret: process.env.GITHUB_CLIENT_SECRET as string,
         },
     },
-});
+}); 
