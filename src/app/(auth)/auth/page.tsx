@@ -3,7 +3,7 @@ import { createAuthClient } from "better-auth/client";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Github, Mail } from "lucide-react"; // Assuming Mail for Google, replace if a better Google icon is available
+import { Github, Mail } from "lucide-react";
 
 const authClient = createAuthClient();
 
