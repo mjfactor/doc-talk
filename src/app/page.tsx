@@ -36,9 +36,6 @@ export default function Home() {
   }; const handleTalkClick = async () => {
     if (selectedFile) {
       try {
-        // Show loading toast
-        toast.loading("Preparing your chat session...");
-
         // Get current user session
         const { data: session, error: sessionError } = await authClient.getSession();
         if (sessionError) {
