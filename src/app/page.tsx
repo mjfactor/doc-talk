@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { createAuthClient } from "better-auth/client";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { createTalkSession } from "../lib/server-actions/actions";
+import { createTalkSession } from "../lib/server-actions/neondb";
 
 
 export default function Home() {
@@ -33,7 +33,8 @@ export default function Home() {
   const handleRemoveFile = () => {
     setSelectedFile(null);
     setFileName(null);
-  }; const handleTalkClick = async () => {
+  };
+  const handleTalkClick = async () => {
     if (selectedFile) {
       try {
         // Get current user session

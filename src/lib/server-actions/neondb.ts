@@ -10,7 +10,7 @@ export async function createTalkSession(userId: string, userName: string, pdfNam
         // Generate a unique ID for the session (using a UUID pattern)
         const id = crypto.randomUUID();
         const createdAt = new Date().toISOString();
-        const updatedAt = createdAt;        // Insert the talk session record
+        const updatedAt = createdAt;
         const result = await sql`
       INSERT INTO talk_session ("id", "userId", "userName", "pdfName", "createdAt", "updatedAt") 
       VALUES (${id}, ${userId}, ${userName}, ${pdfName}, ${createdAt}, ${updatedAt})
