@@ -7,7 +7,7 @@ import { createAuthClient } from "better-auth/client";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createTalkSession } from "../lib/server-actions/neondb";
-
+import { uploadFile } from "@/lib/server-actions/upload-file-vapi";
 
 export default function Home() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -50,8 +50,6 @@ export default function Home() {
           router.push("/auth");
           return;
         }
-
-        console.log('Auth session object:', session);
 
         // Save the talk session to the database using server action
         const result = await createTalkSession(
