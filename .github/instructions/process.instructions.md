@@ -6,3 +6,4 @@ Use shadcn/ui components to build the UI.
 Use context7 to fetch context for specific libraries and frameworks.
 I'm using Better Auth to manage authentication.
 I'm using pnpm to manage my packages.
+The name of the database in dbcode is 'doc-talk'. Use mcp server to access the database.

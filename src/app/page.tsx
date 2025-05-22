@@ -5,6 +5,9 @@ import { UploadCloud, MessageCircle, LogOut, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createAuthClient } from "better-auth/client";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { createTalkSession } from "../lib/server-actions/actions";
+
 
 export default function Home() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -30,19 +33,49 @@ export default function Home() {
   const handleRemoveFile = () => {
     setSelectedFile(null);
     setFileName(null);
-  };
-
-  const handleTalkClick = async () => {
+  }; const handleTalkClick = async () => {
     if (selectedFile) {
+      try {
+        // Show loading toast
+        toast.loading("Preparing your chat session...");
 
-      // Get current user session
-      const { data: session, error: sessionError } = await authClient.getSession();
-      if (sessionError) {
-        console.error('Error getting session:', sessionError);
-        alert('Error getting user session. Please try again.');
-        return;
+        // Get current user session
+        const { data: session, error: sessionError } = await authClient.getSession();
+        if (sessionError) {
+          console.error('Error getting session:', sessionError);
+          toast.error('Error getting user session. Please try again.');
+          return;
+        }
+
+        if (!session || !session.user) {
+          toast.error('User session not found. Please log in again.');
+          router.push("/auth");
+          return;
+        }
+
+        console.log('Auth session object:', session);
+
+        // Save the talk session to the database using server action
+        const result = await createTalkSession(
+          session.user.id,
+          session.user.name || 'Unknown User',
+          selectedFile.name
+        );
+
+        if (!result.success) {
+          toast.error(result.error || 'Failed to create chat session');
+          return;
+        }
+
+        // Success! Redirect to the chat page with the session ID
+        toast.success("Chat session created successfully!");
+
+        // Redirect to the session page
+        router.push(`/${result.id}`);
+      } catch (error) {
+        console.error('Error creating talk session:', error);
+        toast.error('Failed to create chat session. Please try again.');
       }
-      console.log('Auth session object:', session);
     }
   };
 
