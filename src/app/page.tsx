@@ -48,7 +48,7 @@ export default function InterviewPage() {
     };
 
     // Handler for transcript messages
-    const handleMessage = (message: any) => {
+    const handleMessage = (message: TranscriptMessage) => {
       console.log("Message received:", message);
       if (message.type === "transcript" && message.transcript) {
         setTranscriptMessages((prevMessages) => {
