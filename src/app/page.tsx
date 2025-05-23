@@ -1,166 +1,197 @@
 "use client";
 
-import { useState, ChangeEvent } from "react";
-import { UploadCloud, MessageCircle, LogOut, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { createAuthClient } from "better-auth/client";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-import { createTalkSession } from "../lib/actions/neondb";
+import { useState, useEffect, useRef } from "react";
+import { Mic } from "lucide-react";
+import { vapi } from "@/lib/vapi-ai";
+import { Card, CardContent } from "@/components/ui/card";
 
-export default function Home() {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [fileName, setFileName] = useState<string | null>(null);
-  const router = useRouter(); // Initialized useRouter
-  const authClient = createAuthClient(); // Initialize auth client
+// Define types for transcript messages
+interface TranscriptMessage {
+  role: "user" | "assistant";
+  text: string;
+  timestamp: Date;
+}
 
-  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files && event.target.files[0]) {
-      const file = event.target.files[0];
-      if (file.type === "application/pdf") {
-        setSelectedFile(file);
-        setFileName(file.name);
-      } else {
-        setSelectedFile(null);
-        setFileName(null);
-      }
+export default function InterviewPage() {
+  const [isTalking, setIsTalking] = useState(false);
+  const [isAssistantSpeaking, setIsAssistantSpeaking] = useState(false);
+  const [callActive, setCallActive] = useState(false);
+  const [transcript, setTranscript] = useState<TranscriptMessage[]>([]);
+  const transcriptEndRef = useRef<HTMLDivElement>(null);
+
+  // VAPI Assistant ID
+  const ASSISTANT_ID = "e27c1962-fde2-4491-8da3-f80807515b9c";
+
+  // Scroll to bottom of transcript when it updates
+  useEffect(() => {
+    if (transcriptEndRef.current) {
+      transcriptEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  };
+  }, [transcript]);
 
-  const handleRemoveFile = () => {
-    setSelectedFile(null);
-    setFileName(null);
-  };
-  const handleTalkClick = async () => {
-    if (selectedFile) {
-      try {
-        // Get current user session
-        const { data: session, error: sessionError } = await authClient.getSession();
-        if (sessionError) {
-          console.error('Error getting session:', sessionError);
-          toast.error('Error getting user session. Please try again.');
-          return;
+  // Set up event listeners for VAPI
+  useEffect(() => {
+    // Handler functions for events
+    const handleSpeechStart = () => {
+      console.log("Assistant started speaking");
+      setIsAssistantSpeaking(true);
+    };
+
+    const handleSpeechEnd = () => {
+      console.log("Assistant stopped speaking");
+      setIsAssistantSpeaking(false);
+    };
+
+    const handleCallStart = () => {
+      console.log("Call started");
+      setCallActive(true);
+    };
+
+    const handleCallEnd = () => {
+      console.log("Call ended");
+      setCallActive(false);
+      setIsTalking(false);
+    };
+
+    // Handle transcript messages
+    const handleMessage = (msg: any) => {
+      console.log("Message received:", msg);
+      if (msg.type === "transcript") {
+        // Only add final transcripts to avoid flooding the UI with partial updates
+        if (msg.transcriptType === "final") {
+          setTranscript((prev) => [
+            ...prev,
+            {
+              role: "user",
+              text: msg.transcript,
+              timestamp: new Date(),
+            },
+          ]);
         }
-
-        if (!session || !session.user) {
-          toast.error('User session not found. Please log in again.');
-          router.push("/auth");
-          return;
-        }
-
-        // Save the talk session to the database using server action
-        const result = await createTalkSession(
-          session.user.id,
-          session.user.name || 'Unknown User',
-          selectedFile.name
-        );
-
-        if (!result.success) {
-          toast.error(result.error || 'Failed to create chat session');
-          return;
-        }
-
-        // Success! Redirect to the chat page with the session ID
-        toast.success("Chat session created successfully!");
-
-        // Redirect to the session page
-        router.push(`/${result.id}`);
-      } catch (error) {
-        console.error('Error creating talk session:', error);
-        toast.error('Failed to create chat session. Please try again.');
-      }
-    }
-  };
-
-  const handleSignOut = async () => {
-    try {
-      await authClient.signOut({
-        fetchOptions: {
-          onSuccess: () => {
-            router.push("/auth"); // Redirect to auth page after sign-out
+      } else if (msg.type === "assistant-message") {
+        // Add assistant messages to the transcript
+        setTranscript((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            text: msg.text,
+            timestamp: new Date(),
           },
-        },
-      });
-    } catch (error) {
-      console.error("Sign-out error:", error);
-      // Handle error appropriately
-    }
+        ]);
+      }
+    };
+
+    // Register event listeners
+    vapi.on("speech-start", handleSpeechStart);
+    vapi.on("speech-end", handleSpeechEnd);
+    vapi.on("call-start", handleCallStart);
+    vapi.on("call-end", handleCallEnd);
+    vapi.on("message", handleMessage);
+
+    // Cleanup event listeners
+    return () => {
+      vapi.off("speech-start", handleSpeechStart);
+      vapi.off("speech-end", handleSpeechEnd);
+      vapi.off("call-start", handleCallStart);
+      vapi.off("call-end", handleCallEnd);
+      vapi.off("message", handleMessage);
+    };
+  }, []);
+
+  // Handle microphone click - toggles
+  const handleTalk = async () => {
+    setIsTalking((prevIsTalking) => {
+      const newIsTalking = !prevIsTalking;
+
+      if (newIsTalking) {
+        // Start VAPI call
+        console.log("Starting VAPI call with assistant ID:", ASSISTANT_ID);
+        try {
+          vapi.start(ASSISTANT_ID);
+        } catch (error) {
+          console.error("Error starting VAPI call:", error);
+          setIsTalking(false);
+        }
+      } else {
+        // Stop VAPI call
+        console.log("Stopping VAPI call");
+        try {
+          vapi.stop();
+        } catch (error) {
+          console.error("Error stopping VAPI call:", error);
+        }
+      }
+
+      return newIsTalking;
+    });
   };
 
   return (
-    <div className="relative flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4 font-sans">
-      <Button variant="outline" onClick={handleSignOut} className="absolute top-4 right-4 sm:top-6 sm:right-6 z-10">
-        <LogOut className="h-5 w-5 mr-2" />
-        Logout
-      </Button>
+    <div className="flex flex-col items-center justify-between min-h-screen bg-black text-white p-4 md:p-6">
+      <div className="w-full max-w-md mx-auto">
+        <h1 className="text-2xl font-bold mb-6 text-center">
+          Talk with your Doc
+        </h1>
 
-      <header className="mb-12 w-full max-w-2xl flex flex-col items-center text-center pt-8 sm:pt-12">
-        <div>
-          <h1 className="text-5xl font-bold mb-3">DocTalk</h1>
-          <p className="text-xl text-muted-foreground">
-            Upload your PDF and start a conversation.
-          </p>
-        </div>
-      </header>
-
-      <main className="w-full max-w-2xl bg-card text-card-foreground shadow-2xl rounded-xl p-8">
-        <div className="flex flex-col items-center gap-6"> {/* Adjusted gap from gap-8 to gap-6 */}
-          <label
-            htmlFor="pdf-upload"
-            className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-primary transition-colors duration-300 bg-card hover:bg-accent"
-          >
-            <div className="flex flex-col items-center justify-center pt-5 pb-6">
-              <UploadCloud className="w-12 h-12 mb-4 text-primary" />
-              <p className="mb-2 text-lg text-card-foreground">
-                <span className="font-semibold">Click to upload</span> or drag and
-                drop
-              </p>
-              <p className="text-sm text-muted-foreground">PDF only</p>
-              {fileName && (
-                <div className="mt-4 flex items-center gap-2 bg-accent p-2 rounded-md">
-                  <p className="text-md text-primary">{fileName}</p>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={(e) => {
-                      e.preventDefault(); // Prevent label click-through
-                      handleRemoveFile();
-                    }}
-                    className="h-6 w-6" // Smaller remove button
-                  >
-                    <X className="h-4 w-4" />
-                    <span className="sr-only">Remove file</span>
-                  </Button>
-                </div>
-              )}
+        {/* Transcript area */}
+        <div className="h-[400px] mb-6 overflow-y-auto rounded-xl bg-zinc-900 p-4 border border-zinc-800 shadow-lg">
+          {transcript.length > 0 ? (
+            <div className="space-y-4">
+              {transcript.map((message, index) => (
+                <Card
+                  key={index}
+                  className={`border-0 ${message.role === "assistant"
+                      ? "bg-indigo-950/40 text-indigo-100"
+                      : "bg-zinc-800/50 text-zinc-100"
+                    }`}
+                >
+                  <CardContent className="p-3">
+                    <div className="text-xs font-medium mb-1 opacity-70">
+                      {message.role === "assistant" ? "Assistant" : "You"}
+                    </div>
+                    <div>{message.text}</div>
+                  </CardContent>
+                </Card>
+              ))}
+              <div ref={transcriptEndRef} />
             </div>
-            <input
-              id="pdf-upload"
-              type="file"
-              className="hidden"
-              accept="application/pdf"
-              onChange={handleFileChange}
-            />
-          </label>
-
-          {selectedFile && (
-            <Button
-              onClick={handleTalkClick}
-              disabled={!selectedFile}
-              size="lg" // Using Shadcn button size prop
-              className="w-full sm:w-auto" // Keep responsive width
-            >
-              <MessageCircle className="w-5 h-5 mr-2" /> {/* Adjusted icon size and margin */}
-              Talk to PDF
-            </Button>
+          ) : (
+            <div className="h-full flex items-center justify-center text-zinc-500">
+              {callActive
+                ? "Waiting for conversation to begin..."
+                : "Press the microphone button to start a conversation"}
+            </div>
           )}
         </div>
 
-        {/* Placeholder for chat interface - consider Shadcn Card or other layout components */}
-        {/* <div className="mt-12 w-full h-96 bg-muted rounded-lg p-4">
-          <p className="text-muted-foreground text-center">Chat interface will appear here...</p>
-        </div> */}
-      </main>
+        {/* Status message */}
+        <p className="text-center mb-6 text-sm font-medium text-zinc-400">
+          {isTalking
+            ? isAssistantSpeaking
+              ? "Assistant is speaking..."
+              : "Listening... Click mic to stop."
+            : "Press the microphone to start"}
+        </p>
+
+        {/* Mic button */}
+        <div className="flex justify-center">
+          <div
+            className={`w-20 h-20 rounded-full flex items-center justify-center mb-4 cursor-pointer
+                      transition-all duration-300 ease-in-out transform hover:scale-105 active:scale-95
+                      ${isTalking
+                ? "bg-red-600/30 border-2 border-red-400 animate-pulse shadow-lg shadow-red-900/20"
+                : "bg-indigo-900/20 border-2 border-indigo-500 hover:bg-indigo-800/30 hover:border-indigo-400"
+              }`}
+            onClick={handleTalk}
+          >
+            <Mic
+              size={28}
+              className={`transition-colors duration-300 ${isTalking ? "text-red-500" : "text-indigo-400"
+                }`}
+            />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
