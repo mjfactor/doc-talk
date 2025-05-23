@@ -6,8 +6,7 @@ import { Button } from "@/components/ui/button";
 import { createAuthClient } from "better-auth/client";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { createTalkSession } from "../lib/server-actions/neondb";
-import { uploadFile } from "@/lib/server-actions/upload-file-vapi";
+import { createTalkSession } from "../lib/actions/neondb";
 
 export default function Home() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -24,8 +23,6 @@ export default function Home() {
       } else {
         setSelectedFile(null);
         setFileName(null);
-        // Consider using a Shadcn Toast component here for better UX
-        alert("Please upload a PDF file.");
       }
     }
   };

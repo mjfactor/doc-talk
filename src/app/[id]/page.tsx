@@ -21,7 +21,6 @@ export default function InterviewPage() {
     const handleClickMic = () => {
         setIsActive(!isActive);
         console.log('Microphone clicked, session ID:', id);
-        // Here you would add functionality to start/stop recording or begin the interview
     };
 
     return (
