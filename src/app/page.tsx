@@ -1,33 +1,26 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { Mic } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Mic, MessageSquareText } from "lucide-react"; // Added MessageSquareText
 import { vapi } from "@/lib/vapi-ai";
-import { Card, CardContent } from "@/components/ui/card";
 
-// Define types for transcript messages
+// Define an interface for the transcript message
 interface TranscriptMessage {
+  type: string;
   role: "user" | "assistant";
-  text: string;
+  transcript: string;
   timestamp: Date;
+  transcriptType: "partial" | "final"; // Added transcriptType
 }
 
 export default function InterviewPage() {
   const [isTalking, setIsTalking] = useState(false);
   const [isAssistantSpeaking, setIsAssistantSpeaking] = useState(false);
   const [callActive, setCallActive] = useState(false);
-  const [transcript, setTranscript] = useState<TranscriptMessage[]>([]);
-  const transcriptEndRef = useRef<HTMLDivElement>(null);
+  const [transcriptMessages, setTranscriptMessages] = useState<TranscriptMessage[]>([]); // State for transcript messages
 
   // VAPI Assistant ID
   const ASSISTANT_ID = "e27c1962-fde2-4491-8da3-f80807515b9c";
-
-  // Scroll to bottom of transcript when it updates
-  useEffect(() => {
-    if (transcriptEndRef.current) {
-      transcriptEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [transcript]);
 
   // Set up event listeners for VAPI
   useEffect(() => {
@@ -45,6 +38,7 @@ export default function InterviewPage() {
     const handleCallStart = () => {
       console.log("Call started");
       setCallActive(true);
+      setTranscriptMessages([]); // Clear previous transcript on new call
     };
 
     const handleCallEnd = () => {
@@ -53,31 +47,43 @@ export default function InterviewPage() {
       setIsTalking(false);
     };
 
-    // Handle transcript messages
-    const handleMessage = (msg: any) => {
-      console.log("Message received:", msg);
-      if (msg.type === "transcript") {
-        // Only add final transcripts to avoid flooding the UI with partial updates
-        if (msg.transcriptType === "final") {
-          setTranscript((prev) => [
-            ...prev,
-            {
-              role: "user",
-              text: msg.transcript,
-              timestamp: new Date(),
-            },
-          ]);
-        }
-      } else if (msg.type === "assistant-message") {
-        // Add assistant messages to the transcript
-        setTranscript((prev) => [
-          ...prev,
-          {
-            role: "assistant",
-            text: msg.text,
-            timestamp: new Date(),
-          },
-        ]);
+    // Handler for transcript messages
+    const handleMessage = (message: any) => {
+      console.log("Message received:", message);
+      if (message.type === "transcript" && message.transcript) {
+        setTranscriptMessages((prevMessages) => {
+          const newMessage: TranscriptMessage = {
+            type: message.type,
+            role: message.role,
+            transcript: message.transcript,
+            timestamp: new Date(message.timestamp),
+            transcriptType: message.transcriptType, // Make sure to pass this from the event
+          };
+
+          if (newMessage.transcriptType === "partial") {
+            const lastMessage = prevMessages[prevMessages.length - 1];
+            if (lastMessage && lastMessage.role === newMessage.role && lastMessage.transcriptType === "partial") {
+              // Update the last partial message
+              const updatedMessages = [...prevMessages];
+              updatedMessages[prevMessages.length - 1] = newMessage;
+              return updatedMessages;
+            } else {
+              // If last message is not partial or different role, add new partial
+              return [...prevMessages, newMessage];
+            }
+          } else {
+            // It's a final transcript
+            // Check if the last message was a partial from the same role, if so, replace it
+            const lastMessage = prevMessages[prevMessages.length - 1];
+            if (lastMessage && lastMessage.role === newMessage.role && lastMessage.transcriptType === "partial") {
+              const updatedMessages = [...prevMessages];
+              updatedMessages[prevMessages.length - 1] = newMessage; // Replace with final
+              return updatedMessages;
+            }
+            // Otherwise, add the new final message
+            return [...prevMessages, newMessage];
+          }
+        });
       }
     };
 
@@ -86,7 +92,7 @@ export default function InterviewPage() {
     vapi.on("speech-end", handleSpeechEnd);
     vapi.on("call-start", handleCallStart);
     vapi.on("call-end", handleCallEnd);
-    vapi.on("message", handleMessage);
+    vapi.on("message", handleMessage); // Register message handler
 
     // Cleanup event listeners
     return () => {
@@ -94,7 +100,7 @@ export default function InterviewPage() {
       vapi.off("speech-end", handleSpeechEnd);
       vapi.off("call-start", handleCallStart);
       vapi.off("call-end", handleCallEnd);
-      vapi.off("message", handleMessage);
+      vapi.off("message", handleMessage); // Unregister message handler
     };
   }, []);
 
@@ -127,45 +133,28 @@ export default function InterviewPage() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-between min-h-screen bg-black text-white p-4 md:p-6">
-      <div className="w-full max-w-md mx-auto">
-        <h1 className="text-2xl font-bold mb-6 text-center">
-          Talk with your Doc
+    <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white p-6">
+      <div className="max-w-2xl w-full rounded-lg bg-zinc-900 p-8 flex flex-col items-center"> {/* Increased max-w */}
+        <h1 className="text-3xl font-bold mb-10 flex items-center"> {/* Increased text size and added icon */}
+          <MessageSquareText size={36} className="mr-3 text-indigo-400" /> Talk with your Doc
         </h1>
-
-        {/* Transcript area */}
-        <div className="h-[400px] mb-6 overflow-y-auto rounded-xl bg-zinc-900 p-4 border border-zinc-800 shadow-lg">
-          {transcript.length > 0 ? (
-            <div className="space-y-4">
-              {transcript.map((message, index) => (
-                <Card
-                  key={index}
-                  className={`border-0 ${message.role === "assistant"
-                      ? "bg-indigo-950/40 text-indigo-100"
-                      : "bg-zinc-800/50 text-zinc-100"
-                    }`}
-                >
-                  <CardContent className="p-3">
-                    <div className="text-xs font-medium mb-1 opacity-70">
-                      {message.role === "assistant" ? "Assistant" : "You"}
-                    </div>
-                    <div>{message.text}</div>
-                  </CardContent>
-                </Card>
-              ))}
-              <div ref={transcriptEndRef} />
-            </div>
-          ) : (
-            <div className="h-full flex items-center justify-center text-zinc-500">
-              {callActive
-                ? "Waiting for conversation to begin..."
-                : "Press the microphone button to start a conversation"}
-            </div>
-          )}
+        <div
+          className={`w-24 h-24 rounded-full flex items-center justify-center mb-8 cursor-pointer
+                    transition-all duration-300 ease-in-out transform hover:scale-105 active:scale-95
+                    ${isTalking
+              ? "bg-red-600/30 border-2 border-red-400 animate-pulse"
+              : "bg-indigo-900/20 border-2 border-indigo-500 hover:bg-indigo-800/30 hover:border-indigo-400"
+            }`} // Increased size
+          onClick={handleTalk}
+        >
+          <Mic
+            size={32} // Increased size
+            className={`transition-colors duration-300 ${isTalking ? "text-red-500" : "text-indigo-400"
+              }`}
+          />
         </div>
 
-        {/* Status message */}
-        <p className="text-center mb-6 text-sm font-medium text-zinc-400">
+        <p className="text-center mb-8 text-lg"> {/* Increased text size */}
           {isTalking
             ? isAssistantSpeaking
               ? "Assistant is speaking..."
@@ -173,24 +162,27 @@ export default function InterviewPage() {
             : "Press the microphone to start"}
         </p>
 
-        {/* Mic button */}
-        <div className="flex justify-center">
-          <div
-            className={`w-20 h-20 rounded-full flex items-center justify-center mb-4 cursor-pointer
-                      transition-all duration-300 ease-in-out transform hover:scale-105 active:scale-95
-                      ${isTalking
-                ? "bg-red-600/30 border-2 border-red-400 animate-pulse shadow-lg shadow-red-900/20"
-                : "bg-indigo-900/20 border-2 border-indigo-500 hover:bg-indigo-800/30 hover:border-indigo-400"
-              }`}
-            onClick={handleTalk}
-          >
-            <Mic
-              size={28}
-              className={`transition-colors duration-300 ${isTalking ? "text-red-500" : "text-indigo-400"
-                }`}
-            />
+        {/* Transcript Display Area */}
+        {callActive && transcriptMessages.length > 0 && (
+          <div className="w-full max-h-96 overflow-y-auto bg-zinc-800 rounded-lg p-6 space-y-4 scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-zinc-800">
+            {transcriptMessages.map((msg, index) => (
+              <div
+                key={index}
+                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"
+                  }`}
+              >
+                <div
+                  className={`max-w-[70%] p-3 rounded-xl ${msg.role === "user"
+                    ? "bg-indigo-600 text-white rounded-br-none"
+                    : "bg-zinc-700 text-zinc-200 rounded-bl-none"
+                    }`}
+                >
+                  <p className="text-sm">{msg.transcript}</p>
+                </div>
+              </div>
+            ))}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
