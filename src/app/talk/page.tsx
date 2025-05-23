@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Mic, MessageSquareText } from "lucide-react"; // Added MessageSquareText
+import { Mic} from "lucide-react"; // Added MessageSquareText
 import { vapi } from "@/lib/vapi-ai";
 
 // Define an interface for the transcript message
