@@ -13,7 +13,7 @@ export default function HomePage() {
 
   const handleSubmit = () => {
     // Access the password from environment variables
-    if (password === process.env.NEXT_PUBLIC_PASSWORD) {
+    if (password === process.env.PASSWORD) {
       router.push('/talk');
     } else {
       alert('Incorrect password');
